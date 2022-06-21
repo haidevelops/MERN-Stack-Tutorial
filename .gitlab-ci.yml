@@ -1,0 +1,36 @@
+# CI/CD Default Base Image -> A pipeline step starts in this image
+image: docker:stable
+
+# Variables to allow for Docker in Docker (so we can build containers)
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_HOST: tcp://docker:2375
+
+# CI/CD Service definition -> More Requirements for Docker in Docker
+services:
+  - name: docker:dind
+    entrypoint: ["env", "-u", "DOCKER_HOST"]
+    command: ["dockerd-entrypoint.sh"]
+
+# Ran Before Every Script -> Good Practice to Make sure Docker is setup Correctly
+before_script:
+  - docker info
+
+stages:
+  - build
+  # - static_analysis
+  # - test
+  # - deploy
+
+# This job runs in the build stage, which runs first.
+build-job:  # Name  
+  stage: build # Stage
+  image: aymdev/dind-compose # Override the Base Image so we can have Compose
+  before_script: # Scripts that run first -> typically "setup/verify everything is started correctly"
+    - docker version
+    - apk add --no-cache py-pip
+    - pip install docker-compose
+    - docker-compose version 
+  script: # Main part of the build-stage
+    - docker-compose build
